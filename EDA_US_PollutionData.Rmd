@@ -1,5 +1,5 @@
 ---
-title: "US_PollutionData"
+title: "EDA_US_PollutionData"
 output:
   word_document: default
   pdf_document: default
