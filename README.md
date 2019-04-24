@@ -1,4 +1,4 @@
-# Exploratory Data Analysis US Pollution Data
+# Exploratory Data Analysis: US Pollution Data
 
 ### Date
 April 25, 2018
