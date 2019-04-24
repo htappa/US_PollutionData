@@ -1,0 +1,281 @@
+---
+title: "Project1_Pollution"
+output:
+  word_document: default
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+I.  Read in the data set
+
+```{r}
+# Data set of air pollution in US from 2000 to 2016.
+
+pollution <- data.frame(read.csv("pollution_data/pollution_us_2000_2016.csv"))
+```
+
+II. Subset data and view the data frame structures
+
+```{r}
+attach(pollution)
+names(pollution)
+
+# Subset data for MD, VA, DC, and tri (three states combined).
+pollution_md <- subset(pollution, State == "Maryland")[, -(1:5)]
+pollution_va <- subset(pollution, State == "Virginia")[, -(1:5)]
+pollution_dc <- subset(pollution, State == "District Of Columbia")[, -(1:5)]
+pollution_tri <- rbind(pollution_dc, pollution_md, pollution_va)
+pollution_tri <- droplevels.data.frame(pollution_tri)
+
+# Summary of the three states.
+summary(pollution_tri)
+```
+
+III. Descriptive statistics
+
+We decided to analyze Air Quality Index (AQI) of each of the 4 pollutants in Maryland, Virginia, and Washington DC for this project. The pollutants include:
+- Nitrogen Dioxide (NO2)
+- Ozone (O3)
+- Sulfur Dioxide (SO2)
+- Carbon Monoxide (MO)
+
+Descriptive statistics were included to give us a better sense of the variables we are working with.
+
+```{r}
+# install.packages("pastecs")
+library(pastecs)
+
+# Descriptive statistics on pollutant AQIs for the 3 states.
+desc_tri <- stat.desc(pollution_tri, options(scipen = 999))
+desc_triAQI <- round(desc_tri[, c("NO2.AQI", "O3.AQI", "SO2.AQI", "CO.AQI")], digits = 2)
+desc_triAQI
+options(scipen = 0)
+
+# Histograms for AQI of each of the 4 pollutants in MD, VA, and DC, to show how the data is distributed.
+par(mfrow = c(2, 2))
+hist(pollution_tri$NO2.AQI)
+hist(pollution_tri$SO2.AQI)
+hist(pollution_tri$O3.AQI)
+hist(pollution_tri$CO.AQI)
+```
+
+IV. Boxplots
+
+Using data transformation techniques, we drilled down to the county level for MD and VA using boxplots to see how the pollutant AQIs are distributed among counties with varying populations. Note that we used the same analysis for DC, even though it has only one county.
+
+IV(a). Boxplot for counties in Maryland
+
+```{r}
+# install.packages("ggplot2")
+library(ggplot2)
+library(reshape2)
+
+# Convert County variable to factor.
+pollution_md$County <- factor(pollution_md$County, levels = c("Baltimore", "Prince George's", "Garrett"))
+
+# Subset and transform the data for use in boxplot.
+pollution_md2 <- pollution_md[, c("State", "County", "NO2.AQI", "O3.AQI", "SO2.AQI", "CO.AQI")]
+pollution_md3 <- melt(pollution_md2, id.vars = c("State", "County"), measure.vars = c("NO2.AQI", "O3.AQI", "SO2.AQI", "CO.AQI"), na.rm = TRUE)
+
+# Boxplot to show how AQI for each of the four pollutants is distributed among counties in Maryland.
+ggplot(data = pollution_md3) + geom_boxplot(aes(x = County, y = value, fill = factor(variable))) + ylab("AQI") + ylim(0, 60)
+```
+
+IV(b).  Boxplot for counties in Virginia
+
+```{r}
+# Convert County variable to factor
+pollution_va$County <- factor(pollution_va$County, 
+                              levels = c("Alexandria City", "Fairfax", "Henrico", "Roanoke","Hampton City"))
+
+# Subset and transform the data for use in boxplot.
+pollution_va2 <- pollution_va[, c("State", "County", "NO2.AQI", "O3.AQI", "SO2.AQI", "CO.AQI")]
+pollution_va3 <- melt(pollution_va2, id.vars = c("State", "County"), measure.vars = c("NO2.AQI", "O3.AQI", "SO2.AQI", "CO.AQI"), na.rm = TRUE)
+
+# Boxplot to show how AQI for each of the four pollutants is distributed among counties in Virginia.
+ggplot(data = pollution_va3) + geom_boxplot(aes(x = County, y = value, fill = factor(variable))) + ylab("AQI") + ylim(0, 60)
+```
+
+IV(c). Boxplot for Washington DC
+
+```{r}
+# Subset and transform the data for use in boxplot.
+pollution_dc2 <- pollution_dc[, c("State", "County", "NO2.AQI", "O3.AQI", "SO2.AQI", "CO.AQI")]
+pollution_dc3 <- melt(pollution_dc2, id.vars =c("State", "County"), measure.vars = c("NO2.AQI", "O3.AQI", "SO2.AQI", "CO.AQI"), na.rm = TRUE)
+
+# Boxplot to show how AQI for each of the four pollutants is distributed in Washington DC.
+ggplot(data = pollution_dc3) + geom_boxplot(aes(x = County, y = value, fill = factor(variable))) + ylab("AQI") + ylim(0, 60)
+```
+
+V.  ANOVA
+
+We decided to run one-way ANOVA tests for counties in MD and VA to test for potential differences in pollutant AQIs. For each state, we have 4 seperate tests with the pollutant AQI as our dependent variable and County as our independent variable. We then ran a one-way ANOVA test with State (MD, VA, DC) as the independent variable. Finally, to take a closer look at how pollutant AQIs compare at the county level for all states combined, we ran an ANOVA test on pollutant AQIs with County as the independent variable for a subset that includes MD, VA, and DC.
+
+V(a). ANOVA test for counties in Maryland
+
+```{r}
+par(mfrow = c(2, 2))
+
+# One-way ANOVA, summary, and post-hoc test for NO2 AQI and counties in MD
+plot(NO2.AQI ~ County, data = pollution_md)
+aov_md_NO2 <- aov(NO2.AQI ~ County, data = pollution_md)
+summary(aov_md_NO2)
+tukey_md_NO2 <- TukeyHSD(aov_md_NO2)
+tukey_md_NO2
+
+# One-way ANOVA, summary, and post-hoc test for O3 AQI and counties in MD
+plot(O3.AQI ~ County, data = pollution_md)
+aov_md_O3 <- aov(O3.AQI ~ County, data = pollution_md)
+summary(aov_md_O3)
+tukey_md_O3 <- TukeyHSD(aov_md_O3)
+tukey_md_O3
+
+# One-way ANOVA, summary, and post-hoc test for SO2 AQI and counties in MD
+plot(SO2.AQI ~ County, data = pollution_md)
+aov_md_SO2 <- aov(SO2.AQI ~ County, data = pollution_md)
+summary(aov_md_SO2)
+tukey_md_SO2 <- TukeyHSD(aov_md_SO2)
+tukey_md_SO2
+
+# One-way ANOVA, summary, and post-hoc test for CO AQI and counties in MD
+plot(CO.AQI ~ County, data = pollution_md)
+aov_md_CO <- aov(CO.AQI ~ County, data = pollution_md)
+summary(aov_md_CO)
+tukey_md_CO <- TukeyHSD(aov_md_CO)
+tukey_md_CO
+```
+
+V(b). ANOVA test for counties in Virginia
+
+```{r}
+par(mfrow = c(2, 2))
+
+# One-way ANOVA, summary, and post-hoc test for NO2 AQI and counties in VA
+plot(NO2.AQI ~ County, data = pollution_va)
+aov_va_NO2 <- aov(NO2.AQI ~ County, data = pollution_va)
+summary(aov_va_NO2)
+tukey_va_NO2 <- TukeyHSD(aov_va_NO2)
+tukey_va_NO2
+
+# One-way ANOVA, summary, and post-hoc test for SO2 AQI and counties in VA
+plot(SO2.AQI ~ County, data = pollution_va)
+aov_va_SO2 <- aov(SO2.AQI ~ County, data = pollution_va)
+summary(aov_va_SO2)
+tukey_va_SO2 <- TukeyHSD(aov_va_SO2)
+tukey_va_SO2
+
+# One-way ANOVA, summary, and post-hoc test for O3 AQI and counties in VA
+plot(O3.AQI ~ County, data = pollution_va)
+aov_va_O3 <- aov(O3.AQI ~ County, data = pollution_va)
+summary(aov_va_O3)
+tukey_va_O3 <- TukeyHSD(aov_va_O3)
+tukey_va_O3
+
+# One-way ANOVA, summary, and post-hoc test for CO AQI and counties in VA
+plot(CO.AQI ~ County, data = pollution_va)
+aov_va_CO <- aov(CO.AQI ~ County, data = pollution_va)
+summary(aov_va_CO)
+tukey_va_CO <- TukeyHSD(aov_va_CO)
+tukey_va_CO
+```
+
+V(c). ANOVA test for the states of Maryland, Virginia, and Washington DC
+
+```{r}
+par(mfrow = c(2, 2))
+
+# One-way ANOVA, summary, and post-hoc test for NO2 AQI and the states of MD, VA, DC
+plot(NO2.AQI ~ State, data = pollution_tri)
+aov_tri_NO2 <- aov(NO2.AQI ~ State, data = pollution_tri)
+summary(aov_tri_NO2)
+tukey_tri_NO2 <- TukeyHSD(aov_tri_NO2)
+tukey_tri_NO2
+
+# One-way ANOVA, summary, and post-hoc test for SO2 AQI and the states of MD, VA, DC
+plot(SO2.AQI ~ State, data = pollution_tri)
+aov_tri_SO2 <- aov(SO2.AQI ~ State, data = pollution_tri)
+summary(aov_tri_SO2)
+tukey_tri_SO2 <- TukeyHSD(aov_tri_SO2)
+tukey_tri_SO2
+
+# One-way ANOVA, summary, and post-hoc test for O3 AQI and the states of MD, VA, DC
+plot(O3.AQI ~ State, data = pollution_tri)
+aov_tri_O3 <- aov(O3.AQI ~ State, data = pollution_tri)
+summary(aov_tri_O3)
+tukey_tri_O3 <- TukeyHSD(aov_tri_O3)
+tukey_tri_O3
+
+# One-way ANOVA, summary, and post-hoc test for CO AQI and the states of MD, VA, DC
+plot(CO.AQI ~ State, data = pollution_tri)
+aov_tri_CO <- aov(CO.AQI ~ State, data = pollution_tri)
+summary(aov_tri_CO)
+tukey_tri_CO <- TukeyHSD(aov_tri_CO)
+tukey_tri_CO
+```
+
+V(d). ANOVA test for counties in Maryland, Virginia, and Washington DC
+
+```{r}
+par(mfrow = c(2, 2))
+
+# One-way ANOVA, summary, and post-hoc test for NO2 AQI and counties in MD, VA, DC
+plot(NO2.AQI ~ County, data = pollution_tri)
+aov_tri_NO2 <- aov(NO2.AQI ~ County, data = pollution_tri)
+summary(aov_tri_NO2)
+tukey_tri_NO2 <- TukeyHSD(aov_tri_NO2)
+tukey_tri_NO2
+
+# One-way ANOVA, summary, and post-hoc test for SO2 AQI and counties in MD, VA, DC
+plot(SO2.AQI ~ County, data = pollution_tri)
+aov_tri_SO2 <- aov(SO2.AQI ~ County, data = pollution_tri)
+summary(aov_tri_SO2)
+tukey_tri_SO2 <- TukeyHSD(aov_tri_SO2)
+tukey_tri_SO2
+
+# One-way ANOVA, summary, and post-hoc test for O3 AQI and counties in MD, VA, DC
+plot(O3.AQI ~ County, data = pollution_tri)
+aov_tri_O3 <- aov(O3.AQI ~ County, data = pollution_tri)
+summary(aov_tri_O3)
+tukey_tri_O3 <- TukeyHSD(aov_tri_O3)
+tukey_tri_O3
+
+# One-way ANOVA, summary, and post-hoc test for CO AQI and counties in MD, VA, DC
+plot(CO.AQI ~ County, data = pollution_tri)
+aov_tri_CO <- aov(CO.AQI ~ County, data = pollution_tri)
+summary(aov_tri_CO)
+tukey_tri_CO <- TukeyHSD(aov_tri_CO)
+tukey_tri_CO
+```
+
+VI. Correlation between variables (pollutant AQIs)
+
+To see if there was any correlation between the pollutant AQIs themselves, we developed a scatterplot matrix for NO2, O3, SO2, and CO, then ran Pearson's Correlation for each pair of pollutant AQIs to see which could have the highest correlation, visualized by a correlation matrix. Tukey HSD Test was run for each of these compare the pairs of means within the selected groups.
+
+```{r}
+# install.packages("corrplot")
+library(corrplot)
+
+# Scatterplot matrix for the pollutant AQIs (NO2, O3, SO2, CO)
+pairs(~ NO2.AQI + O3.AQI + SO2.AQI + CO.AQI, data = pollution_tri, panel=panel.smooth)
+
+# Pearson's Correlation for each pair of pollutant AQIs
+cor.test(pollution_tri$NO2.AQI, pollution_tri$CO.AQI)
+cor.test(pollution_tri$NO2.AQI, pollution_tri$O3.AQI)
+cor.test(pollution_tri$NO2.AQI, pollution_tri$SO2.AQI)
+cor.test(pollution_tri$SO2.AQI, pollution_tri$O3.AQI)
+cor.test(pollution_tri$SO2.AQI, pollution_tri$CO.AQI)
+cor.test(pollution_tri$O3.AQI, pollution_tri$CO.AQI)
+
+# Correlation matrix for pollutant AQIs
+pollution_cor <- cor(pollution_tri[, c("NO2.AQI", "O3.AQI", "SO2.AQI", "CO.AQI")], 
+                     method = "pearson", use = "complete.obs")
+pollution_cor
+
+# Correlation plot for pollutant AQIs
+corrplot(pollution_cor, method = "circle")
+```
