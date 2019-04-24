@@ -1,11 +1,14 @@
 # Exploratory Data Analysis US Pollution Data
 
+### Date
+April 25, 2018
+
 ### Authors
-Henry Tappa, M.S.
-Ryan Kinsey, M.S.
-Johnwilliam Carroll, M.S.
-Teng Tang, M.S.
-Mengjie Zhang, M.S.
+Henry Tappa, M.S.  
+Ryan Kinsey, M.S.  
+Johnwilliam Carroll, M.S.  
+Teng Tang, M.S.  
+Mengjie Zhang, M.S.  
 
 ### Summary
 This project examines the U.S Pollution Data dataset which was obtained from the Environmental Protection Agency website. The data is of four major pollutants from EPA’s Air Quality historical dataset which is updated twice a year. Spanning years 2000-2016, the dataset contains over 1.4 million observations and procured from Kaggle.com. Following the EDA cycle, we examine the pollutant AQI for four major pollutants in Washington, DC, Maryland, and Virginia.
